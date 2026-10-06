@@ -44,7 +44,11 @@ export async function createReceipt(draft: Draft, settlement: Settlement): Promi
     if (index % 2 === 0) { ctx.fillStyle = '#f6e5ba'; ctx.fillRect(76, y, 928, rowHeight); }
     ctx.fillStyle = '#573824'; ctx.font = '400 36px Vazir'; ctx.textAlign = 'right';
     row.nameLines.forEach((line, n) => ctx.fillText(line, 968, y + 62 + n * 50));
-    ctx.textAlign = 'left'; ctx.fillStyle = '#08767a'; ctx.font = '700 36px Vazir'; ctx.fillText(format(row.amount), 110, y + rowHeight / 2 + 7);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#08767a';
+    const amountText = format(row.amount); let amountSize = 36;
+    ctx.font = `700 ${amountSize}px Vazir`;
+    while (ctx.measureText(amountText).width > 320 && amountSize > 24) { amountSize -= 1; ctx.font = `700 ${amountSize}px Vazir`; }
+    ctx.fillText(amountText, 110, y + rowHeight / 2 + 7);
     ctx.font = '400 24px Vazir'; ctx.fillText('تومان', 110, y + rowHeight / 2 + 36);
     y += rowHeight;
   });
