@@ -64,6 +64,7 @@ export async function downloadReceipt(draft: Draft, settlement: Settlement): Pro
   // Safari on iOS can present the image inline for Save Image.
   if (/iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return url;
   const a = document.createElement('a'); a.href = url; a.download = 'hesab-ketab.png'; document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-  return null;
+  // Keep an explicit image link available in browsers that restrict automatic downloads.
+  // The component revokes this URL when its preview is replaced or closed.
+  return url;
 }

@@ -122,7 +122,7 @@ export default function App() {
             <div className="receipt-total"><span>جمع کل</span><strong>{format(result.total)} <small>تومان</small></strong></div><p className="receipt-footer">حساب روشن، رفاقت برقرار</p></div>
           <button type="button" className="primary download-button" disabled={busy} onClick={download}><Icon name="download" />{busy ? 'آماده کردن تصویر…' : 'دانلود تصویرِ رسید'}</button>
           <button type="button" className="secondary edit-result" disabled={busy} onClick={() => { setResult(null); setImageUrl(null); go(4); }}><Icon name="edit" />برگشت و اصلاح حساب</button>
-          {imageUrl && <div className="ios-save" role="status"><p>برای ذخیره در آیفون، تصویر را لمس کن و نگه دار و «ذخیرهٔ تصویر» را انتخاب کن.</p><img src={imageUrl} alt="تصویر رسید حساب کتاب، آمادهٔ ذخیره" /></div>}
+          {imageUrl && <div className="ios-save" role="status"><p>اگر دانلود شروع نشد، تصویر را مستقیم دریافت کن. در آیفون، تصویر را لمس کن و نگه دار و «ذخیرهٔ تصویر» را انتخاب کن.</p><a className="secondary" href={imageUrl} download="hesab-ketab.png" target="_blank" rel="noopener">دریافت مستقیم تصویر</a><img src={imageUrl} alt="تصویر رسید حساب کتاب، آمادهٔ ذخیره" /></div>}
         </div>}
         <footer className="ledger-footer"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></footer>
       </section>
