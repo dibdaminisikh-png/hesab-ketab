@@ -81,6 +81,7 @@ export default function App() {
           {(draft.step > 2 || result) && <button type="button" disabled={busy} className="identity" onClick={() => { setResult(null); go(2); }}><span className="identity-avatar"><Character kind={1} /></span><span><small>به حساب</small><strong>سفره‌دار {cleanName(draft.payer)}</strong></span><Icon name="edit" /></button>}
         </div>}
         {!result && <nav className="steps" aria-label="مراحل دفتر حساب">{titles.map((name, index) => <button type="button" key={name} disabled={index + 1 > unlocked || busy} className={`${draft.step === index + 1 ? 'active' : ''} ${draft.step > index + 1 ? 'complete' : ''}`} aria-current={draft.step === index + 1 ? 'step' : undefined} onClick={() => go(index + 1)}><span className="step-number">{draft.step > index + 1 ? <Icon name="check" /> : format(index + 1)}</span><span>{name}</span></button>)}</nav>}
+        {(draft.step > 1 || result) && <button type="button" className="back-button" disabled={busy} onClick={() => { if (result) { setResult(null); setImageUrl(null); go(4); } else go(draft.step - 1); }}>برگشت</button>}
         {error && <div className="error-note" id="form-error" role="alert">{error}</div>}
         {!result && <fieldset className="chapter chapter-controls" key={draft.step} disabled={busy}>
           {draft.step === 1 && <>
@@ -124,7 +125,7 @@ export default function App() {
           <button type="button" className="secondary edit-result" disabled={busy} onClick={() => { setResult(null); setImageUrl(null); go(4); }}><Icon name="edit" />برگشت و اصلاح حساب</button>
           {imageUrl && <div className="ios-save" role="status"><p>اگر دانلود شروع نشد، تصویر را مستقیم دریافت کن. در آیفون، تصویر را لمس کن و نگه دار و «ذخیرهٔ تصویر» را انتخاب کن.</p><a className="secondary" href={imageUrl} download="hesab-ketab.png" target="_blank" rel="noopener">دریافت مستقیم تصویر</a><img src={imageUrl} alt="تصویر رسید حساب کتاب، آمادهٔ ذخیره" /></div>}
         </div>}
-        <footer className="ledger-footer"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></footer>
+        <footer className="ledger-footer"><div className="footer-motto"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></div><p className="designer-credit" dir="ltr">Designed by Sleepless Mahdi!</p></footer>
       </section>
     </main>
     {confirmReset && <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setConfirmReset(false); resetButton.current?.focus(); } }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onKeyDown={e => {
