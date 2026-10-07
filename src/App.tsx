@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import Abacus from './Abacus';
+import InstallGuide from './InstallGuide';
 import { calculate, cleanName, format, freshDraft, newInvoice, newItem, parseAmount, participants, peopleError, removeGuest, restoreDraft, STORAGE_KEY, uid } from './model';
 import type { Draft, Invoice, Item, Settlement } from './model';
 import { downloadReceipt } from './receipt';
@@ -139,7 +140,7 @@ export default function App() {
           <button type="button" className="secondary edit-result" disabled={busy} onClick={() => { setResult(null); setImageUrl(null); go(4); }}><Icon name="edit" />برگشت و اصلاح حساب</button>
           {imageUrl && <div className="ios-save" role="status"><p>اگر دانلود شروع نشد، تصویر را مستقیم دریافت کن. در آیفون، تصویر را لمس کن و نگه دار و «ذخیرهٔ تصویر» را انتخاب کن.</p><a className="secondary" href={imageUrl} download="hesab-ketab.png" target="_blank" rel="noopener">دریافت مستقیم تصویر</a><img src={imageUrl} alt="تصویر رسید حساب کتاب، آمادهٔ ذخیره" /></div>}
         </div>}
-        <footer className="ledger-footer"><div className="footer-motto"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></div><p className="designer-credit" dir="ltr">Designed by Sleepless Mahdi!</p></footer>
+        <footer className="ledger-footer"><InstallGuide /><div className="footer-motto"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></div><p className="designer-credit" dir="ltr">Designed by Sleepless Mahdi!</p></footer>
       </section>
     </main>
     {confirmReset && <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setConfirmReset(false); resetButton.current?.focus(); } }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onKeyDown={e => {

@@ -1,0 +1,17 @@
+{
+  "id": "/hesab-ketab/",
+  "name": "حساب کتاب — دفترِ میرزا",
+  "short_name": "حساب کتاب",
+  "description": "دفتر حساب دورهمی‌ها؛ تقسیم هزینه و رسید سهم هر نفر",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/hesab-ketab/",
+  "scope": "/hesab-ketab/",
+  "display": "standalone",
+  "background_color": "#fffaeb",
+  "theme_color": "#107d80",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
