@@ -25,7 +25,7 @@ describe('user journey', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'اسم فاکتور ۱' }), { target: { value: 'کافه سمفونی' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'آیتم ۱' }), { target: { value: 'قهوه' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'مبلغ به تومان' }), { target: { value: '۱۰۰٬۰۰۰' } });
-    expect(within(screen.getByRole('group', { name: /چه کسانی/ })).queryByRole('button', { name: 'عرفان' })).toBeNull();
+    expect(within(screen.getByRole('group', { name: 'شریک‌های این فاکتور' })).queryByRole('button', { name: 'عرفان' })).toBeNull();
     click('میرزا، حساب کن!'); await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
     expect(screen.getByRole('button', { name: 'دانلود تصویرِ رسید' })).toBeTruthy();
     expect(screen.getByText('۳۳٬۳۳۴')).toBeTruthy(); expect(screen.getAllByText('۳۳٬۳۳۳')).toHaveLength(2);
@@ -44,7 +44,7 @@ describe('user journey', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'اسم فاکتور ۱' }), { target: { value: 'کافه' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'آیتم ۱' }), { target: { value: 'چای' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'مبلغ به تومان' }), { target: { value: '90' } });
-    const group = screen.getByRole('group', { name: /چه کسانی/ });
+    const group = screen.getByRole('group', { name: 'شریک‌های این فاکتور' });
     for (const p of ['میرزا مهدی', 'سارا', 'علی']) fireEvent.click(within(group).getByRole('button', { name: p }));
     click('میرزا، حساب کن!'); expect(screen.getByRole('alert').textContent).toContain('حداقل یک شریک');
     fireEvent.click(within(group).getByRole('button', { name: 'علی' })); click('میرزا، حساب کن!');
@@ -65,9 +65,12 @@ describe('user journey', () => {
     const mirza = within(invoicePartners).getByRole('button', { name: 'میرزا مهدی' });
     expect(mirza.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(mirza);
-    for (const group of within(invoice).getAllByRole('group', { name: /چه کسانی/ })) expect(within(group).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('false');
+    expect(mirza.getAttribute('aria-pressed')).toBe('false');
+    expect(within(invoice).getAllByRole('group', { name: 'شریک‌های این فاکتور' })).toHaveLength(1);
+    expect(within(invoice).queryByRole('group', { name: /چه کسانی/ })).toBeNull();
     fireEvent.click(within(invoice).getByRole('button', { name: 'افزودن آیتم' }));
-    expect(within(invoice).getAllByRole('group', { name: /چه کسانی/ })).toHaveLength(3);
+    expect(within(invoice).getAllByRole('textbox', { name: /^آیتم/ })).toHaveLength(3);
+    expect(within(invoice).getAllByRole('button', { name: 'میرزا مهدی' })).toHaveLength(1);
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items.every((item: { sharedBy: string[] }) => !item.sharedBy.includes('mirza'))).toBe(true);
     const secondInvoice = screen.getByRole('region', { name: 'فاکتور ۲' });
     expect(within(within(secondInvoice).getByRole('group', { name: 'شریک‌های این فاکتور' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('true');
@@ -83,9 +86,10 @@ describe('user journey', () => {
     expect(screen.getAllByText('۱۶۵', { selector: '.settlement-row strong' })).toHaveLength(2);
   });
   it('shows partial invoice participation and can select or remove Mirza from every item', async () => {
-    render(<App />); await fillPeople(); click('افزودن آیتم');
-    const [firstItem] = screen.getAllByRole('group', { name: /چه کسانی/ });
-    fireEvent.click(within(firstItem).getByRole('button', { name: 'میرزا مهدی' }));
+    const first = render(<App />); await fillPeople(); click('افزودن آیتم');
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    saved.invoices[0].items[0].sharedBy = saved.invoices[0].items[0].sharedBy.filter((id: string) => id !== 'mirza');
+    first.unmount(); localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); render(<App />);
     const group = screen.getByRole('group', { name: 'شریک‌های این فاکتور' });
     const mirza = within(group).getByRole('button', { name: 'میرزا مهدی' });
     expect(mirza.getAttribute('aria-pressed')).toBe('mixed');

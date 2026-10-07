@@ -44,3 +44,9 @@ dialog.install-guide::backdrop{background:#39281299;backdrop-filter:blur(4px)}
 .install-steps strong{color:var(--ink);display:inline-block}
 .install-steps svg{display:inline-block;width:20px;height:20px;vertical-align:middle;color:var(--teal);margin:0 2px}
 @media(max-height:650px){dialog.install-guide{padding-top:18px}.install-illustration{height:62px;width:84px;margin-bottom:8px}.install-illustration img{height:68px;width:58px}.install-illustration>span{width:34px;height:34px}.install-steps{gap:9px;margin-bottom:16px}}
+
+.invoices,.invoice,.invoice-items,.item-fields,.sharers{min-inline-size:0}
+.invoice{max-inline-size:100%}
+.invoice-subtotal{gap:8px;flex-wrap:wrap}
+.invoice-subtotal strong{min-inline-size:0;max-inline-size:100%;overflow-wrap:anywhere}
+@media(max-width:900px),(pointer:coarse){.invoice-title input,.item-fields input{font-size:16px;min-height:48px}}
