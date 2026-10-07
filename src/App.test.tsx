@@ -57,4 +57,42 @@ describe('user journey', () => {
     click('ستون 5، 2 مهرهٔ یک‌تایی'); expect(screen.getByText('۷', { selector: 'output' })).toBeTruthy();
     click('صفر کن'); expect(screen.getByText('۰', { selector: 'output' })).toBeTruthy();
   });
+  it('selects Mirza per invoice, preserves the selection for new items and saved drafts, and settles only selected invoices', async () => {
+    const first = render(<App />); await fillPeople();
+    click('افزودن آیتم'); click('یک فاکتور دیگر');
+    const invoice = screen.getByRole('region', { name: 'فاکتور ۱' });
+    const invoicePartners = within(invoice).getByRole('group', { name: 'شریک‌های این فاکتور' });
+    const mirza = within(invoicePartners).getByRole('button', { name: 'میرزا مهدی' });
+    expect(mirza.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(mirza);
+    for (const group of within(invoice).getAllByRole('group', { name: /چه کسانی/ })) expect(within(group).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(within(invoice).getByRole('button', { name: 'افزودن آیتم' }));
+    expect(within(invoice).getAllByRole('group', { name: /چه کسانی/ })).toHaveLength(3);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items.every((item: { sharedBy: string[] }) => !item.sharedBy.includes('mirza'))).toBe(true);
+    const secondInvoice = screen.getByRole('region', { name: 'فاکتور ۲' });
+    expect(within(within(secondInvoice).getByRole('group', { name: 'شریک‌های این فاکتور' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('true');
+    first.unmount(); render(<App />);
+    expect(within(within(screen.getByRole('region', { name: 'فاکتور ۱' })).getByRole('group', { name: 'شریک‌های این فاکتور' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('false');
+    for (const [index, region] of screen.getAllByRole('region', { name: /^فاکتور/ }).entries()) {
+      fireEvent.change(within(region).getByRole('textbox', { name: `اسم فاکتور ${index === 0 ? '۱' : '۲'}` }), { target: { value: `فاکتور ${index + 1}` } });
+      for (const input of within(region).getAllByRole('textbox', { name: /^آیتم/ })) fireEvent.change(input, { target: { value: 'چای' } });
+      for (const input of within(region).getAllByRole('textbox', { name: 'مبلغ به تومان' })) fireEvent.change(input, { target: { value: '90' } });
+    }
+    click('میرزا، حساب کن!'); await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(screen.getByText('۳۰', { selector: '.settlement-row strong' })).toBeTruthy();
+    expect(screen.getAllByText('۱۶۵', { selector: '.settlement-row strong' })).toHaveLength(2);
+  });
+  it('shows partial invoice participation and can select or remove Mirza from every item', async () => {
+    render(<App />); await fillPeople(); click('افزودن آیتم');
+    const [firstItem] = screen.getAllByRole('group', { name: /چه کسانی/ });
+    fireEvent.click(within(firstItem).getByRole('button', { name: 'میرزا مهدی' }));
+    const group = screen.getByRole('group', { name: 'شریک‌های این فاکتور' });
+    const mirza = within(group).getByRole('button', { name: 'میرزا مهدی' });
+    expect(mirza.getAttribute('aria-pressed')).toBe('mixed');
+    fireEvent.click(mirza);
+    expect(mirza.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(mirza);
+    expect(mirza.getAttribute('aria-pressed')).toBe('false');
+    for (const item of JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items) expect(item.sharedBy).toHaveLength(2);
+  });
 });

@@ -45,6 +45,15 @@ export default function App() {
   }
   function updateInvoice(id: string, change: Partial<Invoice>) { update({ invoices: draft.invoices.map(f => f.id === id ? { ...f, ...change } : f) }); }
   function updateItem(invoiceId: string, itemId: string, change: Partial<Item>) { update({ invoices: draft.invoices.map(f => f.id === invoiceId ? { ...f, items: f.items.map(i => i.id === itemId ? { ...i, ...change } : i) } : f) }); }
+  function toggleInvoicePartner(invoice: Invoice, personId: string) {
+    const selected = invoice.items.every(item => item.sharedBy.includes(personId));
+    updateInvoice(invoice.id, { items: invoice.items.map(item => ({ ...item, sharedBy: selected ? item.sharedBy.filter(id => id !== personId) : item.sharedBy.includes(personId) ? item.sharedBy : [...item.sharedBy, personId] })) });
+  }
+  function addItem(invoice: Invoice) {
+    const item = newItem(draft);
+    if (invoice.items.length) item.sharedBy = currentPeople.filter(person => invoice.items.some(existing => existing.sharedBy.includes(person.id))).map(person => person.id);
+    updateInvoice(invoice.id, { items: [...invoice.items, item] });
+  }
   function compute() {
     try {
       const settlement = calculate(draft); setError(''); setCelebrating(true); setBusy(true);
@@ -104,11 +113,16 @@ export default function App() {
             <div className="chapter-heading compact"><span className="eyebrow">ریزِ حساب، روی کاغذ</span><h1 ref={heading} tabIndex={-1}>فاکتورها و <em>خُرده‌حساب‌ها</em></h1><p>هر آیتم، فقط بین شریک‌های انتخاب‌شده تقسیم می‌شود.</p></div>
             <div className="invoices">{draft.invoices.map((invoice, index) => <section className="invoice" key={invoice.id} aria-label={`فاکتور ${format(index + 1)}`}>
               <div className="invoice-title"><span className="invoice-count">{format(index + 1)}</span><label className="sr-only" htmlFor={`invoice-${invoice.id}`}>اسم فاکتور {format(index + 1)}</label><input id={`invoice-${invoice.id}`} value={invoice.name} onChange={e => updateInvoice(invoice.id, { name: e.target.value })} placeholder="اسم فاکتور، مثلاً کافه سمفونی" maxLength={120} /><button className="icon-button delete" type="button" aria-label={`حذف فاکتور ${format(index + 1)}`} onClick={() => update({ invoices: draft.invoices.filter(f => f.id !== invoice.id) })}><Icon name="close" /></button></div>
+              <fieldset className="sharers invoice-sharers" disabled={!invoice.items.length}><legend>شریک‌های این فاکتور</legend><div className="chips">{currentPeople.map(person => {
+                const selected = invoice.items.length > 0 && invoice.items.every(item => item.sharedBy.includes(person.id));
+                const partial = !selected && invoice.items.some(item => item.sharedBy.includes(person.id));
+                return <button key={person.id} type="button" className={`chip ${selected ? 'selected' : partial ? 'partial' : ''}`} aria-pressed={partial ? 'mixed' : selected} onClick={() => toggleInvoicePartner(invoice, person.id)}>{selected ? <Icon name="check" /> : partial ? <span aria-hidden="true">−</span> : null}{person.id === draft.mirza.id ? 'میرزا ' : ''}{cleanName(person.name)}</button>;
+              })}</div><p className="invoice-sharing-hint">انتخاب اینجا برای همهٔ آیتم‌های همین فاکتور است؛ سهم هر آیتم را هم می‌توانی جدا تغییر بدهی.</p></fieldset>
               <div className="invoice-items">{invoice.items.map((item, itemIndex) => <div className="item" key={item.id}>
                 <div className="item-fields"><Field label={`آیتم ${format(itemIndex + 1)}`}><input value={item.name} onChange={e => updateItem(invoice.id, item.id, { name: e.target.value })} placeholder="مثلاً قهوه" maxLength={120} /></Field><Field label="مبلغ به تومان"><input dir="ltr" inputMode="numeric" value={item.amountInput} onChange={e => updateItem(invoice.id, item.id, { amountInput: e.target.value })} placeholder="۱۲۰٬۰۰۰" maxLength={30} className="amount-input" /></Field><button className="icon-button delete item-delete" type="button" aria-label={`حذف آیتم ${format(itemIndex + 1)} از فاکتور ${format(index + 1)}`} onClick={() => updateInvoice(invoice.id, { items: invoice.items.filter(i => i.id !== item.id) })}><Icon name="close" /></button></div>
                 <fieldset className="sharers"><legend>چه کسانی شریک‌اند؟ <span>{format(item.sharedBy.length)} نفر</span></legend><div className="chips">{currentPeople.map(p => <button key={p.id} type="button" className={`chip ${item.sharedBy.includes(p.id) ? 'selected' : ''}`} aria-pressed={item.sharedBy.includes(p.id)} onClick={() => updateItem(invoice.id, item.id, { sharedBy: item.sharedBy.includes(p.id) ? item.sharedBy.filter(id => id !== p.id) : [...item.sharedBy, p.id] })}>{item.sharedBy.includes(p.id) && <Icon name="check" />}{p.id === draft.mirza.id ? 'میرزا ' : ''}{cleanName(p.name)}</button>)}</div>{item.sharedBy.length === 0 && <p className="inline-warning">حداقل یک شریک انتخاب کن.</p>}</fieldset>
               </div>)}</div>
-              <button type="button" className="add-item" onClick={() => updateInvoice(invoice.id, { items: [...invoice.items, newItem(draft)] })}><Icon name="plus" />افزودن آیتم</button>
+              <button type="button" className="add-item" onClick={() => addItem(invoice)}><Icon name="plus" />افزودن آیتم</button>
               <div className="invoice-subtotal"><span>جمع این فاکتور</span><strong>{format(invoice.items.reduce((sum, i) => sum + (parseAmount(i.amountInput) ?? 0), 0))} <small>تومان</small></strong></div>
             </section>)}</div>
             <button type="button" className="add-button add-invoice" onClick={() => update({ invoices: [...draft.invoices, newInvoice(draft)] })}><Icon name="plus" />یک فاکتور دیگر</button>
