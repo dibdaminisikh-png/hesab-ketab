@@ -29,6 +29,14 @@ npx wrangler secret put TURNSTILE_SECRET_KEY --config worker/wrangler.jsonc
 
 نشانی خروجی مانند `https://hesab-ketab-scan.YOUR-SUBDOMAIN.workers.dev` است. خرید دامنه لازم نیست. راه دیگر، Deploy همین فایل با dashboard و اضافه‌کردن bindingهای معادل است؛ فایل wrangler راه تکرارپذیر و توصیه‌شده است.
 
+### تنظیم از داشبورد
+
+در Worker → Settings → Bindings، اتصال **Workers AI** را با نام `AI` اضافه کنید. اتصال **Rate limiter** با نام `SCAN_RATE_LIMITER`، Namespace ID برابر `10720261008`، Limit برابر `6` و Period برابر `60 seconds` لازم است.
+
+در Runtime variables and secrets، متغیر Text به نام `ALLOWED_ORIGIN` با مقدار `https://dibdaminisikh-png.github.io` و متغیر Text به نام `TURNSTILE_SITE_KEY` با Site Key عمومی widget بسازید. `TURNSTILE_SECRET_KEY` باید از نوع **Secret** باشد. همهٔ این تنظیمات برای Production هستند.
+
+اگر داشبورد هنگام افزودن binding خطای `No access` یا `Failed to add binding` داد، اتصال کامل نشده است؛ اسکن را فعال اعلام نکنید. دسترسی حساب و وضعیت سرویس را از خود داشبورد بررسی کنید. مخفی‌کردن خطا یا حذف بررسی binding در کد، جایگزین فعال‌سازی نیست.
+
 ## ۳. اتصال GitHub Pages
 
 در GitHub → مخزن → Settings → Secrets and variables → Actions → **Variables** یک Repository variable با نام `VITE_SCAN_API_URL` بسازید و مقدارش را نشانی Worker قرار دهید؛ بدون `/scan` و بدون کلید محرمانه.
