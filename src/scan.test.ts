@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { appendScan, reviewError, toToman } from './scan';
-import { calculate, freshDraft, newInvoice } from './model';
+import { calculate, freshDraft, newInvoice, setMirzaParticipation } from './model';
 import { parseModelReceipt, scanUsage, validateReceipt } from '../shared/scan';
 const extracted = { title: 'کافه آزمایشی', unit: 'unknown', items: [{ name: 'چای', quantity: 3, total: 900000 }], charges: [{ name: 'مالیات', kind: 'tax', amount: 90000 }], printedTotal: 990000, warnings: [] };
 describe('receipt extraction and import', () => {
+  it('imports scanned items without adding an accountant-only Mirza back to the account', () => {
+    let draft = freshDraft(); draft.mirza.name = 'مهدی'; draft.payer = 'عرفان'; draft.guests[0].name = 'سارا'; draft.guests[1].name = 'علی';
+    draft.invoices = [newInvoice(draft)]; draft = setMirzaParticipation(draft, false);
+    const scanned = appendScan(draft, draft.invoices[0].id, { title: 'کافه', unit: 'toman', lines: [{ name: 'چای', amountInput: '90', include: true }] });
+    expect(scanned.invoices[0].items[0].sharedBy).toEqual(draft.guests.map(p => p.id));
+    expect(calculate(scanned).rows.map(p => p.amount)).toEqual([45, 45]);
+  });
   it('parses current chat and legacy envelopes and rejects incomplete or unsafe results', () => {
     expect(parseModelReceipt({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(extracted) } }] }).items[0].total).toBe(900000);
     expect(parseModelReceipt({ response: '```json\n'+JSON.stringify(extracted)+'\n```' }).unit).toBe('unknown');

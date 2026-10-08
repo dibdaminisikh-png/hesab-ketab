@@ -5,7 +5,7 @@ import InstallGuide from './InstallGuide';
 import ScanDialog from './ScanDialog';
 import { appendScan } from './scan';
 import type { ReviewedScan } from './scan';
-import { calculate, cleanName, format, freshDraft, newInvoice, newItem, parseAmount, participants, peopleError, removeGuest, restoreDraft, STORAGE_KEY, uid } from './model';
+import { calculate, cleanName, format, freshDraft, newInvoice, newItem, parseAmount, participants, peopleError, removeGuest, restoreDraft, setMirzaParticipation, STORAGE_KEY, uid } from './model';
 import type { Draft, Invoice, Item, Settlement } from './model';
 import { downloadReceipt } from './receipt';
 const asset = (name: string) => `${import.meta.env.BASE_URL}art/${name}`;
@@ -113,11 +113,18 @@ export default function App() {
             <form onSubmit={next} className="name-form"><Field label="اسم سفره‌دار"><input name="payer" autoComplete="off" className="big-input" value={draft.payer} onChange={e => update({ payer: e.target.value })} maxLength={80} placeholder="مثلاً عرفان" aria-invalid={!!error} /></Field><button className="primary" type="submit">بریم سراغ اهلِ سفره <Icon name="check" /></button></form>
           </>}
           {draft.step === 3 && <>
-            <div className="chapter-heading"><span className="eyebrow">اهلِ سفره را صدا بزن</span><h1 ref={heading} tabIndex={-1}>ریزه‌خوارانِ <em>عزیز!</em></h1><p>۲ تا ۱۲ نفر؛ میرزا هم جداگانه شریک حساب است.</p></div>
+            <div className="chapter-heading"><span className="eyebrow">اهلِ سفره را صدا بزن</span><h1 ref={heading} tabIndex={-1}>ریزه‌خوارانِ <em>عزیز!</em></h1><p>۲ تا ۱۲ ریزه‌خوار اضافه کن؛ حضور میرزا در هزینه‌ها اختیاری است.</p></div>
             <div className="crowd"><Character kind={2} /><Character kind={3} /><Character kind={4} /></div>
-            <form onSubmit={next}><div className="guest-list">{draft.guests.map((guest, index) => <div className="guest-row" key={guest.id}><span className="guest-number">{format(index + 1)}</span><label className="sr-only" htmlFor={`guest-${guest.id}`}>اسم ریزه‌خوار {format(index + 1)}</label><input id={`guest-${guest.id}`} autoComplete="off" value={guest.name} onChange={e => update({ guests: draft.guests.map(p => p.id === guest.id ? { ...p, name: e.target.value } : p) })} placeholder={index === 0 ? 'مثلاً سارا' : index === 1 ? 'مثلاً علی' : 'اسم اهلِ سفره'} maxLength={80} /><button className="icon-button delete" type="button" aria-label={`حذف ریزه‌خوار ${format(index + 1)}`} disabled={draft.guests.length <= 2} onClick={() => { setDraft(d => removeGuest(d, guest.id)); setError(''); }}><Icon name="close" /></button></div>)}</div>
+            <form onSubmit={next}>
+              <section className={`mirza-member ${draft.mirzaParticipates === false ? 'accountant-only' : ''}`} aria-label="حضور میرزا در حساب">
+                <div className="mirza-member-heading"><span className="mirza-member-avatar"><Character kind={0} /></span><div><strong>میرزای حساب و کتاب</strong><small>{draft.mirzaParticipates === false ? 'فقط حساب‌نویس' : 'از قبل به فهرست اضافه شده'}</small></div></div>
+                <Field label="اسم میرزا در فهرست"><input value={cleanName(draft.mirza.name)} readOnly /></Field>
+                <label className="mirza-participation"><input type="checkbox" checked={draft.mirzaParticipates !== false} onChange={e => { setDraft(d => setMirzaParticipation(d, e.target.checked)); setError(''); }} aria-describedby="mirza-participation-help" /><span>میرزا هم شریک هزینه‌هاست</span></label>
+                <p id="mirza-participation-help">{draft.mirzaParticipates === false ? 'میرزا فقط حساب را می‌نویسد و سهمی ندارد؛ شریک‌ها را در فهرست پایین وارد کن.' : 'اسم میرزا را دوباره در فهرست پایین ننویس. سهمش را برای هر فاکتور می‌توانی جدا انتخاب کنی. اگر فقط حساب‌نویس است، این گزینه را خاموش کن.'}</p>
+              </section>
+              <div className="guest-list">{draft.guests.map((guest, index) => <div className="guest-row" key={guest.id}><span className="guest-number">{format(index + 1)}</span><label className="sr-only" htmlFor={`guest-${guest.id}`}>اسم ریزه‌خوار {format(index + 1)}</label><div className="guest-field"><input id={`guest-${guest.id}`} autoComplete="off" value={guest.name} onChange={e => update({ guests: draft.guests.map(p => p.id === guest.id ? { ...p, name: e.target.value } : p) })} placeholder={index === 0 ? 'مثلاً سارا' : index === 1 ? 'مثلاً علی' : 'اسم اهلِ سفره'} maxLength={80} aria-invalid={draft.mirzaParticipates !== false && cleanName(guest.name) === cleanName(draft.mirza.name)} aria-describedby={draft.mirzaParticipates !== false && cleanName(guest.name) === cleanName(draft.mirza.name) ? `duplicate-${guest.id}` : undefined} />{draft.mirzaParticipates !== false && cleanName(guest.name) === cleanName(draft.mirza.name) && <p className="inline-warning" id={`duplicate-${guest.id}`}>اسم میرزا از قبل بالای فهرست هست؛ دوباره واردش نکن.</p>}</div><button className="icon-button delete" type="button" aria-label={`حذف ریزه‌خوار ${format(index + 1)}`} disabled={draft.guests.length <= 2} onClick={() => { setDraft(d => removeGuest(d, guest.id)); setError(''); }}><Icon name="close" /></button></div>)}</div>
             <button className="add-button" type="button" disabled={draft.guests.length >= 12} onClick={() => update({ guests: [...draft.guests, { id: uid(), name: '' }] })}><Icon name="plus" />یک نفر دیگر <span>{format(draft.guests.length)} از ۱۲</span></button>
-            <div className="mirza-note"><Icon name="check" />میرزا {cleanName(draft.mirza.name)} هم در فهرست شریک‌هاست.</div><button className="primary" type="submit">حالا، فاکتورها <Icon name="book" /></button></form>
+            <button className="primary" type="submit">حالا، فاکتورها <Icon name="book" /></button></form>
           </>}
           {draft.step === 4 && <>
             <div className="chapter-heading compact"><span className="eyebrow">ریزِ حساب، روی کاغذ</span><h1 ref={heading} tabIndex={-1}>فاکتورها و <em>خُرده‌حساب‌ها</em></h1><p>هر فاکتور، فقط بین شریک‌های انتخاب‌شدهٔ همان فاکتور تقسیم می‌شود.</p></div>

@@ -1,7 +1,7 @@
 export interface Person { id: string; name: string }
 export interface Item { id: string; name: string; amountInput: string; sharedBy: string[] }
 export interface Invoice { id: string; name: string; items: Item[] }
-export interface Draft { version: 1; mirza: Person; payer: string; guests: Person[]; invoices: Invoice[]; step: number }
+export interface Draft { version: 1; mirza: Person; mirzaParticipates?: boolean; payer: string; guests: Person[]; invoices: Invoice[]; step: number }
 export interface Settlement { total: number; rows: (Person & { amount: number; isMirza: boolean })[] }
 export const STORAGE_KEY = 'hesab-ketab:draft:v1';
 export const uid = () => crypto.randomUUID();
@@ -13,7 +13,11 @@ export function parseAmount(input: string): number | null {
   const value = Number(normalized);
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
-export const participants = (draft: Draft) => [draft.mirza, ...draft.guests];
+export const participants = (draft: Draft) => draft.mirzaParticipates === false ? draft.guests : [draft.mirza, ...draft.guests];
+export function setMirzaParticipation(draft: Draft, included: boolean): Draft {
+  if ((draft.mirzaParticipates !== false) === included) return draft;
+  return { ...draft, mirzaParticipates: included, invoices: draft.invoices.map(invoice => ({ ...invoice, items: invoice.items.map(item => ({ ...item, sharedBy: included ? [...item.sharedBy.filter(id => id !== draft.mirza.id), draft.mirza.id] : item.sharedBy.filter(id => id !== draft.mirza.id) })) })) };
+}
 export const newItem = (draft: Draft): Item => ({ id: uid(), name: '', amountInput: '', sharedBy: participants(draft).map(p => p.id) });
 export const newInvoice = (draft: Draft): Invoice => ({ id: uid(), name: '', items: [newItem(draft)] });
 export function freshDraft(): Draft {
@@ -24,6 +28,7 @@ export function peopleError(draft: Draft): string | null {
   if (!cleanName(draft.payer)) return 'اسم سفره‌دار را بنویس.';
   if (draft.guests.length < 2 || draft.guests.length > 12) return 'تعداد ریزه‌خواران باید بین ۲ تا ۱۲ نفر باشد.';
   if (draft.guests.some(p => !cleanName(p.name))) return 'اسم همهٔ ریزه‌خواران را کامل کن.';
+  if (draft.mirzaParticipates !== false && draft.guests.some(p => cleanName(p.name) === cleanName(draft.mirza.name))) return `میرزا «${cleanName(draft.mirza.name)}» از قبل بالای فهرست شریک‌هاست؛ اسمش را دوباره وارد نکن. اگر این شخص فرد دیگری است، نام کامل‌تری بنویس.`;
   const names = participants(draft).map(p => cleanName(p.name));
   if (new Set(names).size !== names.length) return 'اسم شریک‌ها تکراری است؛ برای تشخیص، نام کامل‌تری بنویس.';
   return null;
@@ -63,7 +68,9 @@ export function restoreDraft(raw: string | null): Draft | null {
     const d = JSON.parse(raw) as Draft;
     const isPerson = (p: Person) => p && typeof p.id === 'string' && p.id.length > 0 && typeof p.name === 'string';
     if (!d || d.version !== 1 || !isPerson(d.mirza) || typeof d.payer !== 'string' || !Array.isArray(d.guests) || d.guests.length < 2 || d.guests.length > 12 || !d.guests.every(isPerson) || !Array.isArray(d.invoices) || !Number.isInteger(d.step) || d.step < 1 || d.step > 4) return null;
-    if (new Set(participants(d).map(p => p.id)).size !== participants(d).length) return null;
+    if (d.mirzaParticipates !== undefined && typeof d.mirzaParticipates !== 'boolean') return null;
+    const everyone = [d.mirza, ...d.guests];
+    if (new Set(everyone.map(p => p.id)).size !== everyone.length) return null;
     const ids = new Set<string>();
     for (const f of d.invoices) {
       if (!f || typeof f.id !== 'string' || ids.has(f.id) || typeof f.name !== 'string' || !Array.isArray(f.items)) return null;
@@ -73,6 +80,7 @@ export function restoreDraft(raw: string | null): Draft | null {
         ids.add(i.id);
       }
     }
-    return d;
+    // Old drafts keep their selections; accountant-only drafts cannot retain a hidden Mirza share.
+    return d.mirzaParticipates === false ? { ...d, invoices: d.invoices.map(f => ({ ...f, items: f.items.map(i => ({ ...i, sharedBy: i.sharedBy.filter(id => id !== d.mirza.id) })) })) } : d;
   } catch { return null; }
 }

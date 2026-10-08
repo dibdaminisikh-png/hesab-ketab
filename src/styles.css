@@ -67,3 +67,19 @@ dialog.install-guide::backdrop{background:#39281299;backdrop-filter:blur(4px)}
 .invoice-subtotal{gap:8px;flex-wrap:wrap}
 .invoice-subtotal strong{min-inline-size:0;max-inline-size:100%;overflow-wrap:anywhere}
 @media(max-width:900px),(pointer:coarse){.invoice-title input,.item-fields input{font-size:16px;min-height:48px}}
+
+.mirza-member{padding:17px;margin-bottom:18px;border:2px solid #8ebba5;border-radius:15px;background:#edf3df;text-align:right}
+.mirza-member-heading{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.mirza-member-heading strong{display:block;color:var(--teal);font-size:.9375rem}
+.mirza-member-heading small{display:block;color:#688565;font-size:.75rem;margin-top:4px}
+.mirza-member-avatar{width:45px;height:48px;overflow:hidden;background:#efcd87;border-radius:11px;flex-shrink:0}
+.mirza-member-avatar .character{width:100%;height:120px;object-fit:cover;object-position:top;animation:none}
+.mirza-member input[readonly]{background:#fffdf1;font-size:16px;color:var(--ink)}
+.mirza-participation{display:flex;align-items:center;gap:9px;margin-top:12px;min-height:44px;font-size:.875rem;font-weight:700;color:var(--teal);cursor:pointer}
+.mirza-participation input{width:22px;height:22px;min-height:0;flex-shrink:0;accent-color:var(--teal);margin:0}
+.mirza-member p{font-size:.8125rem;color:#64785c;line-height:1.95;margin-top:5px;overflow-wrap:anywhere}
+.mirza-member.accountant-only{background:#f5ecda;border-color:#d5bc92}
+.mirza-member.accountant-only p,.mirza-member.accountant-only small{color:var(--muted)}
+.guest-field{flex:1;min-width:0}
+.guest-row .guest-field input{font-size:16px}
+.guest-field input[aria-invalid=true]{border-color:var(--red);background:#fff3e9}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculate, parseAmount, removeGuest, restoreDraft } from './model';
+import { calculate, newInvoice, parseAmount, participants, peopleError, removeGuest, restoreDraft, setMirzaParticipation } from './model';
 import type { Draft } from './model';
 const fixture = (): Draft => ({ version: 1, step: 4, mirza: { id: 'm', name: 'مهدی' }, payer: 'عرفان', guests: [{ id: 'a', name: 'علی' }, { id: 'b', name: 'سارا' }], invoices: [{ id: 'f', name: 'کافه', items: [{ id: 'i', name: 'قهوه', amountInput: '۱۰۰٬۰۰۰', sharedBy: ['b', 'a', 'm'] }] }] });
 describe('exact ledger', () => {
@@ -32,7 +32,7 @@ describe('exact ledger', () => {
   it('rejects incomplete data, duplicate names, unknown people and empty selection', () => {
     const d = fixture(); d.invoices[0].items[0].sharedBy = []; expect(() => calculate(d)).toThrow('حداقل یک شریک');
     d.invoices[0].items[0].sharedBy = ['missing']; expect(() => calculate(d)).toThrow();
-    d.guests[0].name = d.mirza.name; expect(() => calculate(d)).toThrow('تکراری');
+    d.guests[0].name = d.mirza.name; expect(() => calculate(d)).toThrow('از قبل');
     d.guests[0].name = ''; expect(() => calculate(d)).toThrow('کامل');
   });
   it('rejects aggregate overflow', () => {
@@ -49,5 +49,34 @@ describe('exact ledger', () => {
     d.invoices[0].items[0].sharedBy = [d.mirza.id, ...d.guests.map(p => p.id)];
     expect(calculate(d).rows).toHaveLength(13);
     expect(calculate(d).rows.reduce((s, p) => s + p.amount, 0)).toBe(100000);
+  });
+  it('keeps old drafts unchanged and supports an accountant without a share', () => {
+    const old = fixture();
+    expect(restoreDraft(JSON.stringify(old))).toEqual(old);
+    const revised = setMirzaParticipation(old, false);
+    expect(old.invoices[0].items[0].sharedBy).toContain('m');
+    expect(revised.invoices[0].items[0].sharedBy).toEqual(['b', 'a']);
+    expect(participants(revised).map(p => p.id)).toEqual(['a', 'b']);
+    expect(calculate(revised).rows.map(p => p.amount)).toEqual([50000, 50000]);
+    expect(newInvoice(revised).items[0].sharedBy).toEqual(['a', 'b']);
+    expect(restoreDraft(JSON.stringify(revised))).toEqual(revised);
+    const included = setMirzaParticipation(revised, true);
+    expect(calculate(included).rows.map(p => p.amount)).toEqual([33334, 33333, 33333]);
+    expect(setMirzaParticipation(included, true)).toBe(included);
+  });
+  it('gives a specific Mirza duplicate message and keeps guest-only duplicates separate', () => {
+    const d = fixture(); d.guests[0].name = '  مهدی  ';
+    expect(peopleError(d)).toContain('از قبل بالای فهرست');
+    const independent = setMirzaParticipation(d, false);
+    expect(peopleError(independent)).toBeNull();
+    independent.guests[1].name = 'مهدی';
+    expect(peopleError(independent)).toContain('تکراری');
+  });
+  it('cleans stale accountant shares on restore and rejects invalid participation flags or conflicting IDs', () => {
+    const d = fixture(); d.mirzaParticipates = false;
+    expect(restoreDraft(JSON.stringify(d))!.invoices[0].items[0].sharedBy).toEqual(['b', 'a']);
+    expect(restoreDraft(JSON.stringify({ ...d, mirzaParticipates: 'false' }))).toBeNull();
+    d.guests[0].id = d.mirza.id;
+    expect(restoreDraft(JSON.stringify(d))).toBeNull();
   });
 });

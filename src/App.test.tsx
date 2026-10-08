@@ -19,6 +19,28 @@ async function fillPeople() {
   fireEvent.change(screen.getByRole('textbox', { name: 'اسم ریزه‌خوار ۲' }), { target: { value: 'علی' } }); click('حالا، فاکتورها');
 }
 describe('user journey', () => {
+  it('shows Mirza above the guests, explains duplicate names immediately and allows accountant-only use', async () => {
+    render(<App />); await fillPeople();
+    click('ریزه‌خواران');
+    expect((screen.getByRole('textbox', { name: 'اسم میرزا در فهرست' }) as HTMLInputElement).readOnly).toBe(true);
+    expect((screen.getByRole('textbox', { name: 'اسم میرزا در فهرست' }) as HTMLInputElement).value).toBe('مهدی');
+    const guest = screen.getByRole('textbox', { name: 'اسم ریزه‌خوار ۱' });
+    fireEvent.change(guest, { target: { value: 'مهدی' } });
+    expect(guest.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByText('اسم میرزا از قبل بالای فهرست هست؛ دوباره واردش نکن.')).toBeTruthy();
+    click('حالا، فاکتورها'); expect(screen.getByRole('alert').textContent).toContain('از قبل بالای فهرست');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'میرزا هم شریک هزینه‌هاست' }));
+    expect(guest.getAttribute('aria-invalid')).toBe('false');
+    expect(screen.queryByRole('alert')).toBeNull();
+    click('حالا، فاکتورها');
+    expect(screen.queryByRole('button', { name: 'میرزا مهدی' })).toBeNull();
+    fireEvent.change(screen.getByRole('textbox', { name: 'اسم فاکتور ۱' }), { target: { value: 'کافه' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'آیتم ۱' }), { target: { value: 'چای' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'مبلغ به تومان' }), { target: { value: '90' } });
+    click('میرزا، حساب کن!'); await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(screen.getAllByText('۴۵', { selector: '.settlement-row strong' })).toHaveLength(2);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items[0].sharedBy).not.toContain('mirza');
+  });
   it('validates names, completes the four stages and settles the exact shares', async () => {
     render(<App />); click('دفتر را باز کن'); expect(screen.getByRole('alert').textContent).toContain('اسم');
     await fillPeople();
