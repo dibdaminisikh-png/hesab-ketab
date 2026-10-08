@@ -1,0 +1,5 @@
+{
+  "compilerOptions": { "target": "ES2022", "lib": ["ES2022", "DOM"], "module": "ESNext", "moduleResolution": "bundler", "strict": true, "noEmit": true, "skipLibCheck": true },
+  "include": ["*.ts", "../shared/scan.ts"],
+  "exclude": ["*.test.ts"]
+}

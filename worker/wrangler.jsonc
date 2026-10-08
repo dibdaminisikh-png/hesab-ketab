@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "hesab-ketab-scan",
+  "main": "index.ts",
+  "compatibility_date": "2026-10-08",
+  "workers_dev": true,
+  "observability": { "enabled": false },
+  "ai": { "binding": "AI" },
+  "ratelimits": [{ "name": "SCAN_RATE_LIMITER", "namespace_id": "10720261008", "simple": { "limit": 6, "period": 60 } }],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://dibdaminisikh-png.github.io",
+    "TURNSTILE_SITE_KEY": ""
+  }
+}

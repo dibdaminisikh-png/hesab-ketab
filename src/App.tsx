@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import Abacus from './Abacus';
 import InstallGuide from './InstallGuide';
+import ScanDialog from './ScanDialog';
+import { appendScan } from './scan';
+import type { ReviewedScan } from './scan';
 import { calculate, cleanName, format, freshDraft, newInvoice, newItem, parseAmount, participants, peopleError, removeGuest, restoreDraft, STORAGE_KEY, uid } from './model';
 import type { Draft, Invoice, Item, Settlement } from './model';
 import { downloadReceipt } from './receipt';
 const asset = (name: string) => `${import.meta.env.BASE_URL}art/${name}`;
 const titles = ['میرزا', 'سفره‌دار', 'ریزه‌خواران', 'فاکتورها'];
-function Icon({ name }: { name: 'plus' | 'close' | 'check' | 'download' | 'edit' | 'book' | 'reset' }) {
-  const paths = { plus: 'M12 5v14M5 12h14', close: 'm6 6 12 12M18 6 6 18', check: 'm5 12 4 4 10-10', download: 'M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4', edit: 'm15 5 4 4M4 20l4-1L20 7l-4-4L4 15v5', book: 'M4 4h6l2 2 2-2h6v16h-6l-2 1-2-1H4V4Zm8 2v15', reset: 'M4 10a8 8 0 1 1 1 8M4 4v6h6' };
+function Icon({ name }: { name: 'plus' | 'close' | 'check' | 'download' | 'edit' | 'book' | 'reset' | 'scan' }) {
+  const paths = { plus: 'M12 5v14M5 12h14', close: 'm6 6 12 12M18 6 6 18', check: 'm5 12 4 4 10-10', download: 'M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4', edit: 'm15 5 4 4M4 20l4-1L20 7l-4-4L4 15v5', book: 'M4 4h6l2 2 2-2h6v16h-6l-2 1-2-1H4V4Zm8 2v15', reset: 'M4 10a8 8 0 1 1 1 8M4 4v6h6', scan: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 12h18M8 8h8m-8 8h8' };
   return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 function Character({ kind, className = '' }: { kind: number; className?: string }) {
@@ -24,6 +27,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [scanningInvoice, setScanningInvoice] = useState<string | null>(null);
   const panel = useRef<HTMLElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +58,11 @@ export default function App() {
     const item = newItem(draft);
     if (invoice.items.length) item.sharedBy = currentPeople.filter(person => invoice.items.some(existing => existing.sharedBy.includes(person.id))).map(person => person.id);
     updateInvoice(invoice.id, { items: [...invoice.items, item] });
+  }
+  function importScan(scan: ReviewedScan) {
+    if (!scanningInvoice) return;
+    const revised = appendScan(draft, scanningInvoice, scan);
+    setDraft(revised); setError(''); setScanningInvoice(null);
   }
   function compute() {
     try {
@@ -114,6 +123,7 @@ export default function App() {
             <div className="chapter-heading compact"><span className="eyebrow">ریزِ حساب، روی کاغذ</span><h1 ref={heading} tabIndex={-1}>فاکتورها و <em>خُرده‌حساب‌ها</em></h1><p>هر فاکتور، فقط بین شریک‌های انتخاب‌شدهٔ همان فاکتور تقسیم می‌شود.</p></div>
             <div className="invoices">{draft.invoices.map((invoice, index) => <section className="invoice" key={invoice.id} aria-label={`فاکتور ${format(index + 1)}`}>
               <div className="invoice-title"><span className="invoice-count">{format(index + 1)}</span><label className="sr-only" htmlFor={`invoice-${invoice.id}`}>اسم فاکتور {format(index + 1)}</label><input id={`invoice-${invoice.id}`} value={invoice.name} onChange={e => updateInvoice(invoice.id, { name: e.target.value })} placeholder="اسم فاکتور، مثلاً کافه سمفونی" maxLength={120} /><button className="icon-button delete" type="button" aria-label={`حذف فاکتور ${format(index + 1)}`} onClick={() => update({ invoices: draft.invoices.filter(f => f.id !== invoice.id) })}><Icon name="close" /></button></div>
+              <div className="invoice-scan"><button type="button" className="scan-trigger" aria-label={`اسکنش کن با AI! برای فاکتور ${format(index + 1)}`} onClick={() => setScanningInvoice(invoice.id)}><Icon name="scan" /><span>اسکنش کن با <b dir="ltr">AI!</b></span></button><span>عکسِ فاکتور → اسم و جمعِ هر آیتم</span></div>
               <fieldset className="sharers invoice-sharers" disabled={!invoice.items.length}><legend>شریک‌های این فاکتور</legend><div className="chips">{currentPeople.map(person => {
                 const selected = invoice.items.length > 0 && invoice.items.every(item => item.sharedBy.includes(person.id));
                 const partial = !selected && invoice.items.some(item => item.sharedBy.includes(person.id));
@@ -142,6 +152,7 @@ export default function App() {
         <footer className="ledger-footer"><InstallGuide /><div className="footer-motto"><span className="footer-ornament">✦</span>حساب و کتاب، به رسم رفاقت<span className="footer-ornament">✦</span></div><p className="designer-credit" dir="ltr">Designed by Sleepless Mahdi!</p></footer>
       </section>
     </main>
+    {scanningInvoice && <ScanDialog key={scanningInvoice} onClose={() => setScanningInvoice(null)} onImport={importScan} />}
     {confirmReset && <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setConfirmReset(false); resetButton.current?.focus(); } }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onKeyDown={e => {
       if (e.key === 'Escape') { setConfirmReset(false); resetButton.current?.focus(); }
       if (e.key === 'Tab') { const buttons = [...e.currentTarget.querySelectorAll('button')]; const first = buttons[0], last = buttons[buttons.length - 1]; if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } }

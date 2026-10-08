@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc -p worker/tsconfig.json && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run",
+    "worker:check": "wrangler deploy --config worker/wrangler.jsonc --dry-run",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.jsonc"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -22,6 +24,7 @@
     "happy-dom": "^20.14.5",
     "typescript": "~5.9.2",
     "vite": "^7.1.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.148.0"
   }
 }
