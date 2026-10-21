@@ -127,7 +127,7 @@ export default function App() {
             <button className="primary" type="submit">حالا، فاکتورها <Icon name="book" /></button></form>
           </>}
           {draft.step === 4 && <>
-            <div className="chapter-heading compact"><span className="eyebrow">ریزِ حساب، روی کاغذ</span><h1 ref={heading} tabIndex={-1}>فاکتورها و <em>خُرده‌حساب‌ها</em></h1><p>هر فاکتور، فقط بین شریک‌های انتخاب‌شدهٔ همان فاکتور تقسیم می‌شود.</p></div>
+            <div className="chapter-heading compact"><span className="eyebrow">ریزِ حساب، روی کاغذ</span><h1 ref={heading} tabIndex={-1}>فاکتورها و <em>خُرده‌حساب‌ها</em></h1><p>برای هر آیتم انتخاب کن برای کی یا کیاست؛ مبلغش فقط بین همان نفرات تقسیم می‌شود.</p></div>
             <div className="invoices">{draft.invoices.map((invoice, index) => <section className="invoice" key={invoice.id} aria-label={`فاکتور ${format(index + 1)}`}>
               <div className="invoice-title"><span className="invoice-count">{format(index + 1)}</span><label className="sr-only" htmlFor={`invoice-${invoice.id}`}>اسم فاکتور {format(index + 1)}</label><input id={`invoice-${invoice.id}`} value={invoice.name} onChange={e => updateInvoice(invoice.id, { name: e.target.value })} placeholder="اسم فاکتور، مثلاً کافه سمفونی" maxLength={120} /><button className="icon-button delete" type="button" aria-label={`حذف فاکتور ${format(index + 1)}`} onClick={() => update({ invoices: draft.invoices.filter(f => f.id !== invoice.id) })}><Icon name="close" /></button></div>
               <div className="invoice-scan"><button type="button" className="scan-trigger" aria-label={`اسکنش کن با AI! برای فاکتور ${format(index + 1)}`} onClick={() => setScanningInvoice(invoice.id)}><Icon name="scan" /><span>اسکنش کن با <b dir="ltr">AI!</b></span></button><span>عکسِ فاکتور → اسم و جمعِ هر آیتم</span></div>
@@ -135,9 +135,17 @@ export default function App() {
                 const selected = invoice.items.length > 0 && invoice.items.every(item => item.sharedBy.includes(person.id));
                 const partial = !selected && invoice.items.some(item => item.sharedBy.includes(person.id));
                 return <button key={person.id} type="button" className={`chip ${selected ? 'selected' : partial ? 'partial' : ''}`} aria-pressed={partial ? 'mixed' : selected} onClick={() => toggleInvoicePartner(invoice, person.id)}>{selected ? <Icon name="check" /> : partial ? <span aria-hidden="true">−</span> : null}{person.id === draft.mirza.id ? 'میرزا ' : ''}{cleanName(person.name)}</button>;
-              })}</div><p className="invoice-sharing-hint">این انتخاب برای همهٔ آیتم‌های همین فاکتور است.</p>{invoice.items.some(item => item.sharedBy.length === 0) && <p className="inline-warning">حداقل یک شریک انتخاب کن.</p>}</fieldset>
+              })}</div><p className="invoice-sharing-hint">انتخاب سریع برای همهٔ آیتم‌ها؛ پایین هر آیتم می‌توانی نفراتش را جدا تغییر بدهی.</p>{invoice.items.some(item => item.sharedBy.length === 0) && <p className="inline-warning">حداقل یک شریک انتخاب کن.</p>}</fieldset>
               <div className="invoice-items">{invoice.items.map((item, itemIndex) => <div className="item" key={item.id}>
                 <div className="item-fields"><Field label={`آیتم ${format(itemIndex + 1)}`}><input value={item.name} onChange={e => updateItem(invoice.id, item.id, { name: e.target.value })} placeholder="مثلاً قهوه" maxLength={120} /></Field><Field label="مبلغ به تومان"><input dir="ltr" inputMode="numeric" value={item.amountInput} onChange={e => updateItem(invoice.id, item.id, { amountInput: e.target.value })} placeholder="۱۲۰٬۰۰۰" maxLength={30} className="amount-input" /></Field><button className="icon-button delete item-delete" type="button" aria-label={`حذف آیتم ${format(itemIndex + 1)} از فاکتور ${format(index + 1)}`} onClick={() => updateInvoice(invoice.id, { items: invoice.items.filter(i => i.id !== item.id) })}><Icon name="close" /></button></div>
+                <fieldset className="sharers item-sharers"><legend>شریک‌های {cleanName(item.name) || `آیتم ${format(itemIndex + 1)}`}</legend>
+                  <div className="item-sharing-heading"><span>برای کی یا کیاست؟</span><button type="button" className="text-button" onClick={() => updateItem(invoice.id, item.id, { sharedBy: currentPeople.map(person => person.id) })}>انتخاب همه</button></div>
+                  <div className="chips">{currentPeople.map(person => {
+                    const selected = item.sharedBy.includes(person.id);
+                    return <button key={person.id} type="button" className={`chip ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => updateItem(invoice.id, item.id, { sharedBy: selected ? item.sharedBy.filter(id => id !== person.id) : [...item.sharedBy, person.id] })}>{selected && <Icon name="check" />}{person.id === draft.mirza.id ? 'میرزا ' : ''}{cleanName(person.name)}</button>;
+                  })}</div>
+                  {item.sharedBy.length === 0 ? <p className="inline-warning" role="status">برای این آیتم حداقل یک شریک انتخاب کن.</p> : <p className="invoice-sharing-hint">تقسیم مساوی بین {format(item.sharedBy.length)} نفر</p>}
+                </fieldset>
               </div>)}</div>
               <button type="button" className="add-item" onClick={() => addItem(invoice)}><Icon name="plus" />افزودن آیتم</button>
               <div className="invoice-subtotal"><span>جمع این فاکتور</span><strong>{format(invoice.items.reduce((sum, i) => sum + (parseAmount(i.amountInput) ?? 0), 0))} <small>تومان</small></strong></div>
@@ -166,3 +174,4 @@ export default function App() {
     }}><span className="modal-icon"><Icon name="book" /></span><h2 id="reset-title">یک دفترِ تازه؟</h2><p>حساب فعلی پاک می‌شود. اگر رسیدش را لازم داری، اول دانلودش کن.</p><button ref={modalCancel} type="button" className="primary" onClick={() => { setConfirmReset(false); resetButton.current?.focus(); }}>همین دفتر را نگه دار</button><button type="button" className="text-button danger" onClick={reset}>پاک کن و حساب جدید بساز</button></div></div>}
   </div>;
 }
+
