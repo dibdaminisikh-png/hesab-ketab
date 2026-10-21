@@ -83,3 +83,10 @@ dialog.install-guide::backdrop{background:#39281299;backdrop-filter:blur(4px)}
 .guest-field{flex:1;min-width:0}
 .guest-row .guest-field input{font-size:16px}
 .guest-field input[aria-invalid=true]{border-color:var(--red);background:#fff3e9}
+
+
+.item-sharers{margin:12px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fffdf6}
+.item-sharing-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:.8125rem;color:var(--muted)}
+.item-sharing-heading .text-button{min-height:44px;padding:6px 10px}
+.item-sharers .chips{flex-wrap:wrap}
+.item-sharers .chip{min-height:44px}

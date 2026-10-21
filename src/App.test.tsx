@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Storage } from 'happy-dom';
 import App from './App';
 import { STORAGE_KEY } from './model';
+import { appendScan } from './scan';
 beforeEach(() => {
   vi.stubGlobal('localStorage', new Storage());
   localStorage.clear();
@@ -19,6 +20,34 @@ async function fillPeople() {
   fireEvent.change(screen.getByRole('textbox', { name: 'اسم ریزه‌خوار ۲' }), { target: { value: 'علی' } }); click('حالا، فاکتورها');
 }
 describe('user journey', () => {
+  it('assigns scanned items independently, persists choices and calculates their shares', async () => {
+    const first = render(<App />); await fillPeople();
+    const draft = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    const scanned = appendScan(draft, draft.invoices[0].id, { title: 'کافه', unit: 'toman', lines: [
+      { name: 'نوشابه', amountInput: '60', include: true },
+      { name: 'غذا', amountInput: '90', include: true },
+    ] });
+    first.unmount(); localStorage.setItem(STORAGE_KEY, JSON.stringify(scanned));
+    const second = render(<App />);
+    const soda = screen.getByRole('group', { name: 'شریک‌های نوشابه' });
+    fireEvent.click(within(soda).getByRole('button', { name: 'میرزا مهدی' }));
+    expect(within(soda).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('false');
+    expect(within(screen.getByRole('group', { name: 'شریک‌های غذا' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('true');
+    const invoiceGroup = screen.getByRole('group', { name: 'شریک‌های این فاکتور' });
+    expect(within(invoiceGroup).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('mixed');
+    fireEvent.click(within(soda).getByRole('button', { name: 'سارا' }));
+    fireEvent.click(within(soda).getByRole('button', { name: 'علی' }));
+    expect(within(soda).getByRole('status').textContent).toContain('حداقل یک شریک');
+    click('میرزا، حساب کن!'); expect(screen.getByRole('alert').textContent).toContain('حداقل یک شریک');
+    fireEvent.click(within(soda).getByRole('button', { name: 'انتخاب همه' }));
+    fireEvent.click(within(soda).getByRole('button', { name: 'میرزا مهدی' }));
+    second.unmount(); render(<App />);
+    expect(within(screen.getByRole('group', { name: 'شریک‌های نوشابه' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('false');
+    click('میرزا، حساب کن!'); await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(screen.getByText('۳۰', { selector: '.settlement-row strong' })).toBeTruthy();
+    expect(screen.getAllByText('۶۰', { selector: '.settlement-row strong' })).toHaveLength(2);
+  });
+
   it('shows Mirza above the guests, explains duplicate names immediately and allows accountant-only use', async () => {
     render(<App />); await fillPeople();
     click('ریزه‌خواران');
@@ -89,10 +118,10 @@ describe('user journey', () => {
     fireEvent.click(mirza);
     expect(mirza.getAttribute('aria-pressed')).toBe('false');
     expect(within(invoice).getAllByRole('group', { name: 'شریک‌های این فاکتور' })).toHaveLength(1);
-    expect(within(invoice).queryByRole('group', { name: /چه کسانی/ })).toBeNull();
+    expect(within(invoice).getAllByRole('group', { name: /^شریک‌های آیتم/ })).toHaveLength(2);
     fireEvent.click(within(invoice).getByRole('button', { name: 'افزودن آیتم' }));
     expect(within(invoice).getAllByRole('textbox', { name: /^آیتم/ })).toHaveLength(3);
-    expect(within(invoice).getAllByRole('button', { name: 'میرزا مهدی' })).toHaveLength(1);
+    expect(within(invoice).getAllByRole('button', { name: 'میرزا مهدی' })).toHaveLength(4);
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items.every((item: { sharedBy: string[] }) => !item.sharedBy.includes('mirza'))).toBe(true);
     const secondInvoice = screen.getByRole('region', { name: 'فاکتور ۲' });
     expect(within(within(secondInvoice).getByRole('group', { name: 'شریک‌های این فاکتور' })).getByRole('button', { name: 'میرزا مهدی' }).getAttribute('aria-pressed')).toBe('true');
@@ -122,3 +151,4 @@ describe('user journey', () => {
     for (const item of JSON.parse(localStorage.getItem(STORAGE_KEY)!).invoices[0].items) expect(item.sharedBy).toHaveLength(2);
   });
 });
+
